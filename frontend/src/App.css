@@ -1,0 +1,166 @@
+/* App.css */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #8db4e2;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* 2. The centered container */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Keeps it at the top with some padding */
+  min-height: 100vh;
+  padding-top: 50px;
+}
+
+.center-layout {
+  width: 90%;
+  max-width: 500px;
+  background-color: #ffffff; /* Contrast against the #f0f2f5 background */
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* 4. Contrast for Text */
+.center-layout h1 {
+  color: #1a1a1a; /* Dark text for high contrast */
+  margin: 0;
+}
+
+.empty-msg {
+  color: #666666; /* Subtle but readable */
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* 5. Header and Button Styling */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 20px;
+}
+
+.add-btn {
+  background-color: #8db4e2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.task-card {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  transition: transform 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-info span {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.done {
+  text-decoration: line-through;
+  color: #888;
+}
+
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #333; /* Dark theme modal as seen in your notes */
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.form-group input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #444;
+  color: white;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background: #666;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.create-btn {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: auto; /* Pushes button to the far right of the card */
+}
+
+.delete-btn:hover {
+  background-color: #cc0000;
+}

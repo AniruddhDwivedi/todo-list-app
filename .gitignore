@@ -1,0 +1,24 @@
+# --- Dependencies ---
+# Matches node_modules in any subfolder (frontend/ and backend/)
+**/node_modules/
+
+# --- Environment / Secrets ---
+# Crucial for P-4 and P-5 on your roadmap to keep GCP/Auth keys safe
+.env
+.env.local
+.env.*.local
+
+# --- Build Outputs ---
+frontend/dist/
+frontend/build/
+backend/dist/
+
+# --- Debug/Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
