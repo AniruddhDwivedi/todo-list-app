@@ -7,17 +7,29 @@ const router = express.Router();
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// Add this to your auth.js file
 router.get('/me', (req, res) => {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated() && req.user) {
     res.json(req.user);
   } else {
     res.status(401).json({ error: "Not authenticated" });
   }
 });
 
-// Update your callback to remove 'session: false' 
-// Even if we don't 'log in' yet, we need the session to persist the user identity
+router.post('/update-public-key', async (req, res) => {
+  if (!req.user) return res.status(401).send("Unauthorized");
+  const { publicKey } = req.body;
+  
+  try {
+    await pool.query(
+      'UPDATE users SET public_key = $1 WHERE id = $2',
+      [publicKey, req.user.id]
+    );
+    res.json({ message: "Public key stored successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/google/callback', 
   passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
   async (req, res) => {
@@ -49,7 +61,6 @@ router.post('/verify-mfa', async (req, res) => {
     req.login(user, (err) => {
       if (err) return res.status(500).json({ error: "Auth failed" });
       
-      // CRITICAL: Manually save the session before responding
       req.session.save((saveErr) => {
         if (saveErr) return res.status(500).json({ error: "Session save failed" });
         return res.json({ message: "Authenticated", user });
