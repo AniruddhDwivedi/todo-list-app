@@ -1,6 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import pool from './db.js';
+import client from './redis.js';
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -8,26 +8,44 @@ passport.use(new GoogleStrategy({
     callbackURL: "/auth/google/callback"
   },
   async (accessToken, refreshToken, profile, done) => {
-    const { id, displayName, emails, photos } = profile;
     try {
-      const res = await pool.query(
-        `INSERT INTO users (id, email, display_name, avatar_url) 
-         VALUES ($1, $2, $3, $4) 
-         ON CONFLICT (id) DO UPDATE SET display_name = $3, avatar_url = $4 
-         RETURNING *`,
-        [id, emails[0].value, displayName, photos[0].value]
-      );
-      return done(null, res.rows[0]);
+      const { id, displayName, emails, photos } = profile;
+      const key = `user:${id}:profile`;
+
+      const userData = await client.hGetAll(key);
+
+      if (Object.keys(userData).length > 0) {
+        return done(null, userData);
+      }
+
+      const newUser = {
+        google_id: id,
+        display_name: displayName,
+        email: emails[0].value,
+        avatar_url: photos[0].value,
+        public_key: ""
+      };
+
+      await client.hSet(key, newUser);
+      return done(null, newUser);
     } catch (err) {
       return done(err, null);
     }
   }
 ));
 
-passport.serializeUser((user, done) => done(null, user.id));
+// Use google_id to maintain consistency across Redis keys
+passport.serializeUser((user, done) => {
+    done(null, user.google_id);
+});
+
 passport.deserializeUser(async (id, done) => {
-  const res = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-  done(null, res.rows[0]);
+    try {
+        const user = await client.hGetAll(`user:${id}:profile`);
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
 });
 
 export default passport;

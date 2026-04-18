@@ -1,73 +1,68 @@
 import express from 'express';
-import pool from '../config/db.js';
+import client from '../config/redis.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  
-  try {
-    const result = await pool.query(
-      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY id ASC', 
-      [req.user.id]
+    const userId = req.user.google_id;
+    const taskIds = await client.sMembers(`user:${userId}:tasks`);
+
+    const tasks = await Promise.all(
+        taskIds.map(async (id) => await client.hGetAll(`task:${id}`))
     );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    res.json(tasks);
 });
 
-// 2. CREATE A TASK (POST /api/tasks)
 router.post('/', async (req, res) => {
-  const { title, deadline } = req.body;
-  
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    const { title, deadline } = req.body;
+    const taskId = crypto.randomUUID();
+    const userId = req.user.google_id;
 
-  try {
-    const result = await pool.query(
-      'INSERT INTO tasks (title, deadline, user_id) VALUES ($1, $2, $3) RETURNING *',
-      [title, deadline, req.user.id]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Database Error:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+    const taskData = {
+        id: taskId,
+        title,
+        deadline,
+        completed: 'false',
+        user_id: userId
+    };
+
+    await client.hSet(`task:${taskId}`, taskData);
+    await client.sAdd(`user:${userId}:tasks`, taskId);
+    res.json(taskData);
 });
 
-// Change this:
-router.patch('/:id', async (req, res) => { // Removed '/api/tasks'
-  const { id } = req.params;
-  const { completed } = req.body;
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+router.patch('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { completed } = req.body;
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-  try {
-    const result = await pool.query(
-      'UPDATE tasks SET completed = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
-      [completed, id, req.user.id] // Added user_id check for security!
-    );
-    if (result.rows.length === 0) return res.status(404).send("Task not found");
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const taskKey = `task:${id}`;
+    const task = await client.hGetAll(taskKey);
+
+    if (!task || task.user_id !== req.user.google_id) {
+        return res.status(404).send("Task not found");
+    }
+
+    await client.hSet(taskKey, 'completed', String(completed));
+    const updatedTask = await client.hGetAll(taskKey);
+    res.json(updatedTask);
 });
 
-// Change this:
-router.delete('/:id', async (req, res) => { // Removed '/api/tasks'
-  const { id } = req.params;
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
 
-  try {
-    const result = await pool.query(
-      'DELETE FROM tasks WHERE id = $1 AND user_id = $2', 
-      [id, req.user.id] // Only delete if it belongs to the user
-    );
-    if (result.rowCount === 0) return res.status(404).send("Task not found");
+    const taskKey = `task:${id}`;
+    const userId = req.user.google_id;
+
+    // Check ownership
+    const taskOwner = await client.hGet(taskKey, 'user_id');
+    if (taskOwner !== userId) return res.status(404).send("Task not found");
+
+    await client.del(taskKey);
+    await client.sRem(`user:${userId}:tasks`, id);
     res.json({ message: 'Task deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 export default router;

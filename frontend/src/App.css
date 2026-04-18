@@ -249,3 +249,91 @@ body {
 .key-input-label{
   background-color: blue;
 }
+
+.avatar{
+  border-radius: 5px;
+  border: 1px solid black;
+}
+/* Container for the form inside the modal */
+.task-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centers items horizontally */
+  gap: 20px;
+  padding: 10px;
+}
+
+.task-form h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Grouping labels and inputs */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px; /* Limits width so it doesn't get too wide */
+  text-align: left;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+/* Shared styling for both inputs */
+.task-entry, .date-entry {
+  width: 100%;
+  height: 45px;
+  padding: 0 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #333;
+  box-sizing: border-box; /* Crucial: keeps padding inside the width */
+  transition: border-color 0.3s ease;
+}
+
+/* Highlight the blue theme you wanted */
+.task-entry {
+  color: #186FE8;
+  font-weight: 500;
+}
+
+.task-entry:focus, .date-entry:focus {
+  outline: none;
+  border-color: #186FE8;
+}
+
+/* Button layout */
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.create-btn, .cancel-btn {
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+}
+
+.gen-btn{
+  padding: 15px 30px;
+  border-radius: 12px;
+  font-weight: lighter;
+  cursor: pointer;
+  transition: transform 0.2s;
+  color: #186FE8;
+}

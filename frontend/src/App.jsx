@@ -69,14 +69,45 @@ function App() {
   // 3. Action Handlers
   const handleGenerateKeys = async () => {
     const keys = await generateUserKeys();
-    await fetch("http://localhost:3001/auth/update-public-key", {
+    const res = await fetch("http://localhost:3001/auth/update-public-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ publicKey: keys.publicKeyPem }),
     });
-    setTempKeys(keys);
-    setUser({ ...user, public_key: keys.publicKeyPem });
+
+    if (res.ok) {
+      setTempKeys(keys);
+      // Ensure we update local state so encryption works immediately
+      setUser((prev) => ({ ...prev, public_key: keys.publicKeyPem }));
+    }
+  };
+
+  // Fix 2: Create Task
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!user.public_key) return alert("Please initialize encryption first!");
+
+    try {
+      const encryptedTitle = encryptData(taskName, user.public_key);
+
+      const response = await fetch("http://localhost:3001/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ title: encryptedTitle, deadline: deadline }),
+      });
+
+      if (response.ok) {
+        const savedTask = await response.json();
+        setTasks((prev) => [...prev, savedTask]);
+        setTaskName("");
+        setDeadline("");
+        setShowModal(false);
+      }
+    } catch (err) {
+      alert("Encryption or Network error. Check console.");
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -92,35 +123,16 @@ function App() {
     reader.readAsText(file);
   };
 
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    if (!user.public_key) return alert("Generate keys first!");
-
-    const encryptedTitle = encryptData(taskName, user.public_key);
-
-    const response = await fetch("http://localhost:3001/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ title: encryptedTitle, deadline: deadline }),
-    });
-
-    if (response.ok) {
-      const savedTask = await response.json();
-      setTasks((prev) => [...prev, savedTask]);
-      setTaskName("");
-      setDeadline("");
-      setShowModal(false);
-    }
-  };
-
   const toggleTask = async (id) => {
     const taskToToggle = tasks.find((t) => t.id === id);
+
+    const currentStatus = String(taskToToggle.completed) === "true";
+
     const response = await fetch(`http://localhost:3001/api/tasks/${id}`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !taskToToggle.completed }),
+      body: JSON.stringify({ completed: !currentStatus }),
     });
 
     if (response.ok) {
@@ -188,10 +200,18 @@ function App() {
         <main className="center-layout">
           <header className="app-header">
             <div className="user-profile">
-              <img src={user.avatar_url} alt="avatar" className="avatar" />
+              <h1>Todo List</h1>
+              <br></br>
+              <img
+                src={user.avatar_url}
+                alt="|  user_avatar  |"
+                className="avatar"
+              />
+              <br></br>
+              <br></br>
+              <br></br>
               <span>{user.display_name}</span>
             </div>
-            <h1>Secure Tasks</h1>
             <button onClick={() => setShowModal(true)} className="add-btn">
               Add Task (+)
             </button>
@@ -225,11 +245,13 @@ function App() {
 
                 <p>or</p>
 
-                <label className="key-input-label">                                  <textarea
-                  onChange={(e) => setUserPrivateKey(e.target.value)}
-                  placeholder="Paste PEM key here..."
-                /></label>
-                
+                <label className="key-input-label">
+                  {" "}
+                  <textarea
+                    onChange={(e) => setUserPrivateKey(e.target.value)}
+                    placeholder="Paste PEM key here..."
+                  />
+                </label>
               </div>
             ) : (
               <p className="status-locked">🔓 Database decrypted locally.</p>
@@ -237,31 +259,35 @@ function App() {
           </section>
 
           <section className="tasks-view">
-            {tasks.map((task) => (
-              <div key={task.id} className="task-card">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleTask(task.id)}
-                />
-                <div className="task-info">
-                  <span className={task.completed ? "done" : ""}>
-                    {userPrivateKey
-                      ? decryptData(task.title, userPrivateKey)
-                      : "🔒 " + task.title.substring(0, 15) + "..."}
-                  </span>
-                  <small>
-                    Due: {new Date(task.deadline).toLocaleDateString()}
-                  </small>
+            {tasks.map((task) => {
+              const isCompleted = String(task.completed) === "true";
+
+              return (
+                <div key={task.id} className="task-card">
+                  <input
+                    type="checkbox"
+                    checked={isCompleted}
+                    onChange={() => toggleTask(task.id)}
+                  />
+                  <div className="task-info">
+                    <span className={isCompleted ? "done" : ""}>
+                      {userPrivateKey
+                        ? decryptData(task.title, userPrivateKey)
+                        : "🔒 " + (task.title?.substring(0, 15) || "...")}
+                    </span>
+                    <small>
+                      Due: {new Date(task.deadline).toLocaleDateString()}
+                    </small>
+                  </div>
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    className="delete-btn"
+                  >
+                    Delete
+                  </button>
                 </div>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="delete-btn"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </section>
         </main>
       )}
@@ -269,22 +295,33 @@ function App() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <form onSubmit={handleCreateTask}>
+            <form onSubmit={handleCreateTask} className="task-form">
               <h2>New Task</h2>
-              <input
-                value={taskName}
-                onChange={(e) => setTaskName(e.target.value)}
-                placeholder="Task Title"
-                required
-              />
-              <input
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
+
+              <div className="input-group">
+                <label>Task Title</label>
+                <input
+                  value={taskName}
+                  onChange={(e) => setTaskName(e.target.value)}
+                  placeholder="enter task name"
+                  required
+                  className="task-entry"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Deadline</label>
+                <input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="date-entry"
+                />
+              </div>
+
               <div className="modal-actions">
                 <button type="submit" className="create-btn">
-                  Create
+                  Create Task
                 </button>
                 <button
                   type="button"
