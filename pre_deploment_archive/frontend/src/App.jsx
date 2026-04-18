@@ -4,10 +4,6 @@ import Login from "./Login";
 import VerifyMFA from "./verfiyMFA.jsx";
 import { generateUserKeys, encryptData, decryptData } from "./utils/crypto";
 
-const API_BASE = window.location.hostname === "localhost" 
-  ? "http://localhost:3001" 
-  : "";
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,9 +18,10 @@ function App() {
   const [deadline, setDeadline] = useState("");
 
   // 1. App Initialization logic
-useEffect(() => {
+  useEffect(() => {
     const initApp = async () => {
       const params = new URLSearchParams(window.location.search);
+
       if (params.has("userId")) {
         setView("mfa");
         setLoading(false);
@@ -32,7 +29,7 @@ useEffect(() => {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
+        const res = await fetch("http://localhost:3001/auth/me", {
           credentials: "include",
         });
 
@@ -57,7 +54,7 @@ useEffect(() => {
   // 2. Fetch tasks for dashboard
   useEffect(() => {
     if (view === "dashboard" && user) {
-      fetch(`${API_BASE}/api/tasks`, {
+      fetch("http://localhost:3001/api/tasks", {
         method: "GET",
         credentials: "include",
       })
@@ -72,7 +69,7 @@ useEffect(() => {
   // 3. Action Handlers
   const handleGenerateKeys = async () => {
     const keys = await generateUserKeys();
-    const res = await fetch(`${API_BASE}/auth/update-public-key`, {
+    const res = await fetch("http://localhost:3001/auth/update-public-key", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -81,6 +78,7 @@ useEffect(() => {
 
     if (res.ok) {
       setTempKeys(keys);
+      // Ensure we update local state so encryption works immediately
       setUser((prev) => ({ ...prev, public_key: keys.publicKeyPem }));
     }
   };
@@ -93,7 +91,7 @@ useEffect(() => {
     try {
       const encryptedTitle = encryptData(taskName, user.public_key);
 
-      const response = await fetch(`${API_BASE}/api/tasks`, {
+      const response = await fetch("http://localhost:3001/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -119,6 +117,7 @@ useEffect(() => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
+      // This reads the raw text exactly as it is in the file
       setUserPrivateKey(content.trim());
     };
     reader.readAsText(file);
@@ -129,7 +128,7 @@ useEffect(() => {
 
     const currentStatus = String(taskToToggle.completed) === "true";
 
-    const response = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const response = await fetch(`http://localhost:3001/api/tasks/${id}`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +142,7 @@ useEffect(() => {
   };
 
   const deleteTask = async (id) => {
-    const response = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const response = await fetch(`http://localhost:3001/api/tasks/${id}`, {
       method: "DELETE",
       credentials: "include",
     });

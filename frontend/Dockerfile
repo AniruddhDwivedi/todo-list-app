@@ -1,15 +1,14 @@
-# frontend/Dockerfile
-FROM node:20-slim
-
+# Stage 1: Build 
+FROM node:20-alpine AS build
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm install
-
 COPY . .
+RUN npm run build
 
-# Vite's default dev port
-EXPOSE 5173
-
-# Start Vite and make it accessible outside the container
-CMD ["npm", "run", "dev", "--", "--host"]
+# Stage 2: Serve with Nginx
+FROM nginx:stable-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+# If you use React Router, you'd usually add a custom nginx.conf here
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

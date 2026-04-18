@@ -2,10 +2,7 @@ import "./App.css";
 
 function Login() {
   const handleLogin = () => {
-    // Logic for dynamic base
-    const API_BASE = window.location.hostname === "localhost" ? "http://localhost:3001" : "";
-    
-    window.location.href = `${API_BASE}/auth/google`;
+    window.location.href = "http://localhost:3001/auth/google";
   };
 
   return (

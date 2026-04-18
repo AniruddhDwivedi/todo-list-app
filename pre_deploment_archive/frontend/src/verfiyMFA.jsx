@@ -3,14 +3,10 @@ import { useState } from "react";
 function VerifyMFA({ onVerified }) {
   const [code, setCode] = useState("");
   const userId = new URLSearchParams(window.location.search).get("userId");
-  
-  // Logic for dynamic base
-  const API_BASE = window.location.hostname === "localhost" ? "http://localhost:3001" : "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // CHANGED: Use dynamic path
-    const res = await fetch(`${API_BASE}/auth/verify-mfa`, {
+    const res = await fetch("http://localhost:3001/auth/verify-mfa", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, code }),
