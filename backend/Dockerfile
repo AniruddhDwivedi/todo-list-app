@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3001
 
 # Start the server
-CMD ["node", "index.js"]
+CMD ["npm", "run", "server"]
